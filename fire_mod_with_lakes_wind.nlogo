@@ -1,7 +1,7 @@
 globals [
   initial-trees
   burned-trees
-  fire-direction
+  direction
 ]
 
 to setup
@@ -11,13 +11,15 @@ to setup
   ask patches [
     if (random 100) < density
     [ set pcolor green ]
-    if pxcor = min-pxcor
+    if pxcor = min-pxcor and pcolor = green
     [ set pcolor red ]
   ]
 
-  ; create lakes (s = pi * r^2)
+  ; create lakes
   ask n-of count-lakes patches [ set pcolor blue]
-  ask patches with [pcolor = blue] [ask patches in-radius sqrt (lake-square / pi) [set pcolor blue]]
+  ask patches with [pcolor = blue] [
+    ask patches in-radius sqrt (lake-square / pi) [set pcolor blue]
+  ]
 
   set initial-trees count patches with [pcolor = green]
   set burned-trees 0
@@ -30,17 +32,17 @@ to go
   ask patches with [pcolor = red] [
   ask neighbors4 with [ pcolor = green ] [
       let probability probability-of-spread
-      let direction towards myself
-      if direction = 0 [
+      set direction towards myself
+      if direction = 0 and wind-direction = 180 [
         set probability probability - south-wind-speed
       ]
-      if direction = 90 [
+      if direction = 90 and wind-direction = 270 [
         set probability probability - west-wind-speed
       ]
-      if direction = 180 [
+      if direction = 180 and wind-direction = 0 [
         set probability probability + south-wind-speed
       ]
-      if direction = 270 [
+      if direction = 270 and wind-direction = 90 [
         set probability probability + west-wind-speed
       ]
       if random 100 < probability [
@@ -100,7 +102,7 @@ density
 density
 0.0
 99.0
-95.0
+100.0
 1.0
 1
 %
@@ -176,7 +178,7 @@ MONITOR
 518
 158
 Fire Direction
-fire-direction
+direction
 17
 1
 11
@@ -190,7 +192,7 @@ lake-square
 lake-square
 0
 200
-500.0
+100.0
 1
 1
 NIL
@@ -237,7 +239,7 @@ CHOOSER
 wind-direction
 wind-direction
 0 90 180 270
-3
+1
 
 SLIDER
 17
@@ -649,44 +651,48 @@ repeat 180 [ go ]
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <metric>count turtles</metric>
-    <enumeratedValueSet variable="wind_speed">
-      <value value="30"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="density">
-      <value value="82"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="spread_probability">
-      <value value="92"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="wind_direction">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lake_size">
-      <value value="20"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Density Experiment" repetitions="100" runMetricsEveryStep="true">
+  <experiment name="experiment_density_square" repetitions="50" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
     <metric>100 * burned-trees / initial-trees</metric>
     <enumeratedValueSet variable="count-lakes">
       <value value="30"/>
     </enumeratedValueSet>
-    <steppedValueSet variable="density" first="5" step="10" last="100"/>
+    <steppedValueSet variable="density" first="30" step="5" last="100"/>
     <enumeratedValueSet variable="probability-of-spread">
       <value value="90"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="west-wind-speed">
       <value value="15"/>
     </enumeratedValueSet>
-    <steppedValueSet variable="lake-square" first="0" step="100" last="500"/>
-    <steppedValueSet variable="wind-direction" first="0" step="90" last="270"/>
+    <steppedValueSet variable="lake-square" first="5" step="5" last="100"/>
+    <enumeratedValueSet variable="wind-direction">
+      <value value="90"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="south-wind-speed">
       <value value="15"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment_wind_direction_density" repetitions="50" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>100 * burned-trees / initial-trees</metric>
+    <steppedValueSet variable="density" first="30" step="1" last="100"/>
+    <enumeratedValueSet variable="lake-square">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="count-lakes">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="wind-direction" first="0" step="90" last="270"/>
+    <enumeratedValueSet variable="probability-of-spread">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="west-wind-speed">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="south-wind-speed">
+      <value value="25"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

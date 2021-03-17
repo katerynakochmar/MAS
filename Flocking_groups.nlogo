@@ -1,15 +1,15 @@
 turtles-own [
   flockmates
   nearest-neighbor
+  bird-groups
+  bird-group-index
 ]
 
 globals [
-  bird-groups
-  bird-groups-count
-  group-heading-dispersion
-  avg-group-heading
-  birds-groups-last-index-list
-  random-turtle-group-index
+  bird-groups-qty
+  group-heading-deviation
+  mean-group-heading
+  current
 ]
 
 to setup
@@ -19,21 +19,23 @@ to setup
       set size 1.5
       setxy random-xcor random-ycor
       set flockmates no-turtles
-      set  birds-groups-last-index-list []
   ]
   reset-ticks
 end
 
 to go
 
-  if ticks >= 400 [stop]
+  if ticks >= 1000 [stop]
+  set current 1
+
+  repeat 5 [ ask turtles [ fd 0.2 ] display ]
 
   ask turtles [ fd 1 ]
-  get-groups
-  count-bird-groups
+  find-bird-groups
+
+  set bird-groups-qty length (remove-duplicates ([bird-group-index] of turtles))
 
   ask turtles [ flock ]
-  repeat 5 [ ask turtles [ fd 0.2 ] display ]
   tick
 end
 
@@ -99,45 +101,58 @@ to turn-at-most [turn max-turn]
     [ rt turn ]
 end
 
-to get-groups
+to find-bird-groups
+ ask turtles [
+    get-groups
+    set bird-group-index who
+  ]
+
   ask turtles [
-    find-groups
-    find-average-group-heading
-    find-dispersion-group-heading
+    ask turtles in-radius (5 * minimum-separation) [
+      set bird-group-index min [bird-group-index] of bird-groups
+    ]
+    set current bird-group-index
   ]
 
-  ;; list of birds indexes in group
-  if length ([who] of bird-groups) >= 1 [
-    set random-turtle-group-index one-of ([who] of bird-groups)
-    set birds-groups-last-index-list insert-item 0  birds-groups-last-index-list random-turtle-group-index
+  ask turtles [
+    set current bird-group-index
+    find-mean-group-heading
+    find-deviation-group-heading
+  ]
+
+  ask turtles with [bird-group-index = current] [
+   set color red
+   set label bird-group-index
+   set size 2
   ]
 
 end
 
-to count-bird-groups
- set bird-groups-count length (remove-duplicates (birds-groups-last-index-list))
+to count-groups
+ set bird-groups-qty length (remove-duplicates ([bird-group-index] of turtles))
 end
 
-to find-groups
-  set bird-groups other turtles in-radius (2 * minimum-separation)
+to get-groups
+  set bird-groups turtles in-radius (2 * minimum-separation)
 end
 
-to find-average-group-heading
-  set avg-group-heading average-group-heading
+to find-mean-group-heading
+  set mean-group-heading average-group-heading
 end
 
 to-report average-group-heading
-  let x-component sum [dx] of bird-groups
-  let y-component sum [dy] of bird-groups
+  let x-component sum [dx] of turtles with [bird-group-index = current]
+  let y-component sum [dy] of turtles with [bird-group-index = current]
   ifelse x-component = 0 and y-component = 0
     [ report heading ]
     [ report atan x-component y-component ]
 end
 
-to find-dispersion-group-heading
+to find-deviation-group-heading
   ;;list of headings of birds in group
-  if length ([heading] of bird-groups) > 1 [
-  set group-heading-dispersion variance ([heading] of bird-groups)]
+  if length ([heading] of turtles with [bird-group-index = current]) > 1 [
+  set group-heading-deviation variance ([heading] of turtles with [bird-group-index = current])
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -168,10 +183,10 @@ ticks
 30.0
 
 BUTTON
-29
-23
-106
-56
+39
+93
+116
+126
 NIL
 setup
 NIL
@@ -185,10 +200,10 @@ NIL
 1
 
 BUTTON
-112
-23
-193
-56
+122
+93
+203
+126
 NIL
 go
 T
@@ -202,25 +217,25 @@ NIL
 0
 
 SLIDER
-10
-73
-233
-106
+9
+51
+232
+84
 population
 population
 1.0
 1000.0
-289.0
+63.0
 1.0
 1
 NIL
 HORIZONTAL
 
 SLIDER
-8
-244
-241
-277
+4
+217
+237
+250
 max-align-turn
 max-align-turn
 0.0
@@ -232,10 +247,10 @@ degrees
 HORIZONTAL
 
 SLIDER
-8
-291
-241
-324
+4
+251
+237
+284
 max-cohere-turn
 max-cohere-turn
 0.0
@@ -247,10 +262,10 @@ degrees
 HORIZONTAL
 
 SLIDER
-7
-337
-240
-370
+4
+285
+237
+318
 max-separate-turn
 max-separate-turn
 0.0
@@ -262,10 +277,10 @@ degrees
 HORIZONTAL
 
 SLIDER
-10
-130
-233
-163
+9
+135
+232
+168
 vision
 vision
 0.0
@@ -292,48 +307,66 @@ patches
 HORIZONTAL
 
 MONITOR
-812
-24
-924
-69
-NIL
-bird-groups-count
+781
+211
+908
+256
+Count of bird groups
+bird-groups-qty
 17
 1
 11
 
 MONITOR
-812
-84
-955
-129
+784
+351
+927
+396
 Mean of Group Heading
-avg-group-heading
+mean-group-heading
 17
 1
 11
 
 MONITOR
-813
-143
-983
-188
-Variance of Group Heading
-group-heading-dispersion
-17
-1
-11
-
-MONITOR
-17
-512
+20
+516
 190
-557
-Random bird index in group
-random-turtle-group-index
+561
+Variance of Group Heading
+group-heading-deviation
 17
 1
 11
+
+MONITOR
+781
+278
+954
+323
+Group Index
+current
+17
+1
+11
+
+PLOT
+782
+31
+982
+181
+Bird Groups Count Plot
+Iteration
+Bird Groups Count
+0.0
+1000.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot bird-groups-qty"
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -733,9 +766,9 @@ repeat 200 [ go ]
   <experiment name="Base Params Experiment" repetitions="30" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
-    <metric>bird-groups-count</metric>
-    <metric>avg-group-heading</metric>
-    <metric>group-heading-variance</metric>
+    <metric>bird-groups-qty</metric>
+    <metric>mean-group-heading</metric>
+    <metric>group-heading-deviation</metric>
     <enumeratedValueSet variable="max-cohere-turn">
       <value value="3"/>
     </enumeratedValueSet>
@@ -755,10 +788,10 @@ repeat 200 [ go ]
       <value value="5"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="Birds-Groups-Count-Experiment" repetitions="100" runMetricsEveryStep="true">
+  <experiment name="Birds-Groups-Count-Experiment" repetitions="50" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
-    <metric>bird-groups-count</metric>
+    <metric>bird-groups-qty</metric>
     <enumeratedValueSet variable="max-cohere-turn">
       <value value="3"/>
     </enumeratedValueSet>
